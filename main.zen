@@ -1,0 +1,28 @@
+pub const UefiHandle = *mut @Type(.Opaque);
+
+pub const SimpleTextOutputProtocol = extern struct {
+    reset: fn (*SimpleTextOutputProtocol, bool) callconv(.C) usize,
+    output_string: fn (*SimpleTextOutputProtocol, [*:0]u16) callconv(.C) usize,
+};
+
+pub const SystemTable = extern struct {
+    _: [60]u8,
+    con_out: ?*mut SimpleTextOutputProtocol,
+};
+
+fn printu8(out: *SimpleTextOutputProtocol, msg: []u8) void {
+    for (msg) |c| {
+        _ = out.output_string(out, &[1:0]u16{c});
+    }
+}
+
+comptime {
+    @export(EfiMain, .{ .name = "EfiMain" });
+}
+
+pub fn EfiMain(handle: UefiHandle, system_table: *mut SystemTable) callconv(.C) usize {
+    const con_out = system_table.con_out.?;
+    _ = con_out.reset(con_out, false);
+    printu8(con_out, "Hello UEFI in Zen!");
+    while (true) {}
+}
